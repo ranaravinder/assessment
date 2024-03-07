@@ -30,6 +30,9 @@ Specifies the name(s) of the IIS site(s) to be analyzed. This parameter is requi
 You can provide multiple site names by separating them with commas.
 Comma-separated list of IISSiteName values when the Source is IISServer.
 
+.PARAMETER IncludeChildFolders
+Switch parameter to specify whether to include analysis of child folders when the Source is a folder.
+
 .OUTPUTS
 The script runs the appcat analyze command and saves the assessment report to the specified report path.
 
@@ -56,47 +59,96 @@ Runs the script with custom parameters.
 # Define named argument parameters
 param (
     [Parameter()]
-    [string]$ApplicationPath = "C:\workspace\source\ang-net\BooksApi\BooksApi.sln",
+    [string]$Path = "C:\workspace\source\ang-net\BooksApi\BooksApi.sln",
     [Parameter()]
     [string]$Target = "Any", # AppService.Linux, AppService.Windows, AppServiceContainer.Linux,AppServiceContainer.Windows, ACA, AKS.Linux,  AKS.Windows, Any
     [Parameter()]
-    [string]$ReportPath = "C:\appcat",
+    [string]$ReportPath = "C:\appcat\",
     [Parameter()]
     [string]$Serializer = "html",
     [Parameter()]
-    [string]$Source = "IISServer",  # Solution, Folder, IISServer
+    [string]$Source = "IISServer", # Solution, Folder, IISServer
     [Parameter()]
-    [string[]]$IISSiteName = @()   # Required when Source is IISServer
+    [string[]]$IISSiteName = @(), # Required when Source is IISServer
+    [Parameter()]
+    [switch]$IncludeChildFolders = $false
 )
+$BaseReportPath = $ReportPath 
 
 # Conditionally add --code flag if Source is Solution
-if ($Source -eq "Solution") {
-    $CodeFlag = "--code"
-} else {
-    $CodeFlag = ""
-}
+$CodeFlag = if ($Source -eq "Solution") { "--code" } else { "" }
 
 # Conditionally add --binaries flag if Source is Folder or IISServer
-if ($Source -eq "Folder" -or $Source -eq "IISServer") {
-    $BinariesFlag = "--binaries"
-} else {
-    $BinariesFlag = ""
+$BinariesFlag = if ($Source -eq "Folder" -or $Source -eq "IISServer") { "--binaries" } else { "" }
+
+# Function to run the appcat analyze command 
+function RunAppCat($PlaceHolder) {
+
+    $appcatCommand = "appcat analyze  --source $Source --target $Target  --serializer $Serializer --non-interactive $CodeFlag $BinariesFlag"
+    
+    if ( $PlaceHolder -ne "") {
+        $appcatCommand += "  $($PlaceHolder.FullName)"       
+    }
+
+    if ($Source -eq "Folder") {
+        $rp = Split-Path $($PlaceHolder.FullName) -Leaf           
+        # Create a new report folder for each child folder        
+        $ReportPath = Join-Path -Path (Join-Path -Path $BaseReportPath -ChildPath $Source) -ChildPath $rp   
+
+    }
+    elseif ($Source -eq "Solution") {        
+        $rp = Split-Path $Path -Parent | Split-Path -Leaf       
+        # Create a new report folder for each child folder
+        $ReportPath = Join-Path -Path (Join-Path -Path $BaseReportPath -ChildPath $Source) -ChildPath $rp   
+
+    } elseif ($Source -eq "IISServer" ) {
+        
+        $ReportPath = Join-Path -Path $BaseReportPath -ChildPath $Source
+    }
+
+    Write-Host  $($PlaceHolder.FullName)  
+    Write-Host $ReportPath
+    
+    # Check if the report path exists and delete it if it does
+    if (Test-Path -Path $ReportPath) {
+        Remove-Item -Path $ReportPath -Recurse -Force
+    }
+    # Check if IISSiteNames is provided
+    if ($Source -eq "IISServer" -and $IISSiteNames -ne "") {
+        $appcatCommand += " --IISSiteName $($IISSiteName -join ',')"
+    }
+    
+    $appcatCommand += "  --report $ReportPath"
+    
+    Invoke-Expression $appcatCommand
 }
 
-# Check if the report path exists and delete it if it does
-if (Test-Path -Path $ReportPath) {
-    Remove-Item -Path $ReportPath -Recurse -Force
+
+
+# Check if the source is IISServer and IISSiteNames is provided
+if ($Source -eq "IISServer" ) {
+    RunAppCat 
 }
-
-# Run the appcat analyze command with the specified parameters
-# appcat analyze $ApplicationPath  --source $Source --target $Target  --report $ReportPath --serializer $Serializer --non-interactive $CodeFlag $BinariesFlag
-$appcatCommand = "appcat analyze $ApplicationPath --source $Source --target $Target --report $ReportPath --serializer $Serializer --non-interactive $CodeFlag $BinariesFlag"
-
-if ($IISSiteName -ne "") {
-    $appcatCommand += " --IISSiteName $($IISSiteName -join ',')"
+elseif ($Source -eq "Solution") {
+    $SolutionFile = Get-Item -Path $Path -Filter *.sln 
+    RunAppCat $SolutionFile    
 }
+elseif ($Source -eq "Folder") {
+    # Check if the flag to include child folders is set and $Source is "Folder"
+    if ($IncludeChildFolders -and $Source -eq "Folder") {
+        # Get a list of child folders one level down from the root folder
+        $ChildFolders = Get-ChildItem -Path $Path -Directory
 
-Invoke-Expression $appcatCommand
+        # Iterate through each child folder and run the script for each one
+        foreach ($Folder in $ChildFolders) {
+            RunAppCat $Folder
+        }
+    }
+    else {
+        # Run the appcat analyze command for the root folder only
+        RunAppCat (Get-Item -Path $Path)
+    }  
+}
 
 # Display author/developer information
 Write-Host "Author: Ravinder Singh Rana"

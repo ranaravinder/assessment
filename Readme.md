@@ -10,12 +10,13 @@ The Get-AppCatResult PowerShell script (`Get-AppCatResult.ps1`) is a tool for an
 
 The script accepts the following named parameters:
 
-- **ApplicationPath**: The path to the .NET application to be analyzed. Default value: `C:\workspace\source\ang-net\BooksApi\BooksApi.sln`.
+- **Path**: The path to the .NET application to be analyzed. Default value: `C:\workspace\source\ang-net\BooksApi\BooksApi.sln`.
 - **Target**: The target environment for deployment. Possible values include `Any`, `AppService.Linux`, `AppService.Windows`, `AppServiceContainer.Linux`, `AppServiceContainer.Windows`, `ACA`, `AKS.Linux`, `AKS.Windows`. Default value: `Any`.
 - **ReportPath**: The path to store the assessment results. Default value: `C:\appcat`.
 - **Serializer**: The format for the assessment report. Default value: `html`.
 - **Source**: The source of the application to be analyzed. Possible values include `Solution`, `Folder`, `IISServer`. Default value: `IISServer`.
 - **IISSiteName**: (Optional) The name of the IIS site(s) to analyze. This parameter accepts multiple site names separated by commas.
+- **IncludeChildFolders**: Switch parameter to specify whether to include analysis of child folders when the Source is a folder.
 
 ### Dependencies
 
