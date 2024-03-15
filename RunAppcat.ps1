@@ -43,8 +43,9 @@ param (
     [switch]$SourceMode = $false,
     [switch]$IncludeChildFolders = $false
 )
-Write-Host $InputPath
-Write-Host $OutputPath
+# Write-Output $InputPath
+# Write-Output $OutputPath
+
 # Function to construct and run the appcat command
 function RunAppCat {
     param (
@@ -55,6 +56,8 @@ function RunAppCat {
     if ($SourceMode) {
         $appcatCommand += " --sourceMode"
     }
+    # Write-Host $appcatCommand
+
     Invoke-Expression $appcatCommand
 }
 
