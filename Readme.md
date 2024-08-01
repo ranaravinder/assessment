@@ -104,9 +104,9 @@ Similarly, to update the tool, use the following command:
 ## Author
 
 - **Author:** Ravinder Singh Rana
-- **Email:** v-ravrana@microsoft.com
+- **Email:** talk2rana@gmail.com
 
-If you have any questions or suggestions, feel free to contact me at [v-ravrana@microsoft.com](mailto:v-ravrana@microsoft.com).
+If you have any questions or suggestions, feel free to contact me at [talk2rana@gmail.com](mailto:talk2rana@gmail.com).
 
 
 
